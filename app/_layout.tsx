@@ -1,24 +1,30 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { Stack } from "expo-router";
+import { View, StyleSheet } from "react-native";
+import BottomMenu from "../components/BottomMenu";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <View style={styles.container}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: "#000" },
+          animation: "fade", // 建議改成 fade，切換時底部選單才不會有奇怪的滑動感
+        }}
+      >
+        <Stack.Screen name="index" options={{ title: "每日記錄" }} />
+        <Stack.Screen name="history" options={{ title: "歷史紀錄" }} />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+
+      {/* 將底部選單固定在最外層 */}
+      <BottomMenu />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+});
