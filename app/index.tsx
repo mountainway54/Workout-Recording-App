@@ -1,17 +1,17 @@
 import React, { useState } from "react"; // 引入狀態管理工具
 import {
   ActionSheetIOS,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ScrollView,
 } from "react-native"; // 引入 UI 元件
 import DatePickerButton from "../components/DatePickerButton";
 
 import { styles } from "../components/WorkoutCard"; // 引入零件
 import workoutData from "./constants/workoutData.json"; // 匯入剛剛的 JSON
-
+import { loadWorkout, saveWorkout } from "./utils/workoutStorage";
 
 export default function Index() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -28,6 +28,19 @@ export default function Index() {
 
   const days = Object.keys(workoutData);
 
+  // 日期格式化輔助
+  const formatDate = (date: Date) => date.toISOString().split("T")[0];
+
+  const handleSave = async () => {
+    await saveWorkout({
+      date: formatDate(selectedDate),
+      day: selectedDay,
+      exercises: workoutData[selectedDay as keyof typeof workoutData],
+      sets,
+    });
+    alert("已儲存！");
+  };
+
   // 選擇訓練日的 ActionSheet
   const showDayPicker = () => {
     ActionSheetIOS.showActionSheetWithOptions(
@@ -37,11 +50,26 @@ export default function Index() {
         userInterfaceStyle: "dark",
       },
       (buttonIndex) => {
-        if (buttonIndex !== days.length) {
-          setSelectedDay(days[buttonIndex]);
-        }
+        // if (buttonIndex !== days.length) {
+        //   setSelectedDay(days[buttonIndex]);
+        // }
+        const selectedDayName = days[buttonIndex];
+        handleDaySelect(selectedDayName);
+        // 直接導向 handleDaySelect，
+        // 這樣它會同時執行 setSelectedDay(day) 與 loadWorkout(...)
       },
     );
+  };
+
+  const handleDaySelect = async (day: string) => {
+    setSelectedDay(day);
+    const count = workoutData[day as keyof typeof workoutData].length;
+    const existing = await loadWorkout(formatDate(selectedDate), day);
+    if (existing) {
+      setSets(existing.sets); // 有紀錄就還原
+    } else {
+      setSets([...Array(count)].map(() => ({ weight: "", reps: "" })));
+    }
   };
 
   // 更新特定項目的數據
@@ -114,6 +142,9 @@ export default function Index() {
           )}
         </View>
       )}
+      <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
+        <Text style={{ color: "#fff", fontWeight: "500" }}>儲存訓練</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }

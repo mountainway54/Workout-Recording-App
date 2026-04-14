@@ -51,61 +51,78 @@ export const styles = StyleSheet.create({
     marginTop: 5,
   },
 
-cell: { 
-    flex: 1, 
-    textAlign: "center", 
-    color: "#fff", 
-    fontSize: 12 // 字體調小以容納多欄位
-},
+  cell: {
+    flex: 1,
+    textAlign: "center",
+    color: "#fff",
+    fontSize: 12, // 字體調小以容納多欄位
+  },
 
-daySelector: { 
-    backgroundColor: "#333", 
-    padding: 15, 
-    borderRadius: 8, 
+  daySelector: {
+    backgroundColor: "#333",
+    padding: 15,
+    borderRadius: 8,
     marginBottom: 20,
-    alignItems: "center" 
+    alignItems: "center",
   },
 
-matrixContainer: { 
-    backgroundColor: "#1A1A1A", 
-    borderRadius: 12, 
-    padding: 10 
+  matrixContainer: {
+    backgroundColor: "#1A1A1A",
+    borderRadius: 12,
+    padding: 10,
   },
 
-  row: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    paddingVertical: 10, 
-    borderBottomWidth: 1, 
-    borderBottomColor: "#333" 
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
   },
 
   // 補在 StyleSheet.create 裡面
-  exerciseText: { 
-    flex: 2, 
-    textAlign: "left", 
-    color: "#FFA500", 
-    fontSize: 14, 
-    fontWeight: "600" 
+  exerciseText: {
+    flex: 2,
+    textAlign: "left",
+    color: "#FFA500",
+    fontSize: 14,
+    fontWeight: "600",
   },
-  
-  inputCell: { 
-    backgroundColor: "#2C2C2E", 
-    marginHorizontal: 2, 
-    borderRadius: 6, 
-    paddingVertical: 8, 
-    color: "#fff", 
+
+  inputCell: {
+    backgroundColor: "#2C2C2E",
+    marginHorizontal: 2,
+    borderRadius: 6,
+    paddingVertical: 8,
+    color: "#fff",
     textAlign: "center",
     fontSize: 14,
     flex: 1, // 確保在 row 裡面平均分配
   },
 
-  volumeText: { 
+  volumeText: {
     flex: 1,
-    color: "#30D158", 
-    fontWeight: "700", 
+    color: "#30D158",
+    fontWeight: "700",
     textAlign: "center",
-    fontSize: 14 
+    fontSize: 14,
   },
-}
-);
+
+  //儲存按鈕
+  saveButton: {
+    backgroundColor: "#007AFF", // iOS 標準藍色
+    height: 50, // 符合 iOS 建議的最小點擊區域
+    borderRadius: 12, // 現代 iOS 介面常用的圓角弧度
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 16, // 側邊留白 16pt 是 iOS 的標配
+    marginTop: 24,
+    marginBottom: 40, // 預留空間給底部 Home Indicator (小橫條)
+
+    // iOS 專用陰影 (讓按鈕看起來稍微浮起)
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+  },
+});
