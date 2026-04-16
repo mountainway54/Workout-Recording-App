@@ -34,3 +34,4 @@ export async function loadAllWorkouts(): Promise<WorkoutRecord[]> {
     .map(([, val]) => (val ? JSON.parse(val) : null))
     .filter(Boolean) as WorkoutRecord[];
 }
+ 
