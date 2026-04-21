@@ -1,44 +1,99 @@
-import React, { useState } from "react"; // 引入狀態管理工具
+import React, { useState } from "react";
 import {
   ActionSheetIOS,
+  ActivityIndicator,
+  Alert,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native"; // 引入 UI 元件
+} from "react-native";
 import DatePickerButton from "../components/DatePickerButton";
 
-import { styles } from "../components/WorkoutCard"; // 引入零件
-import workoutData from "./constants/workoutData.json"; // 匯入剛剛的 JSON
-import { loadWorkout, saveWorkout } from "./utils/workoutStorage";
+import { styles } from "../components/WorkoutCard";
+import workoutData from "./constants/workoutData.json";
+
+// ===== Google Apps Script 設定 =====
+// 將此 URL 替換為你部署的 Google Apps Script Web App URL
+const GOOGLE_APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbxCtwipfqjVLKdo5eIHS6b3xL-VOUhuBUoGrG4q-jKmEp5xM6FAPJhjy_w7hocxluVg/exec";
 
 export default function Index() {
   const [selectedDate, setSelectedDate] = useState(new Date());
-
-  // 1. 項目狀態，預設為「請選擇項目」
   const [selectedDay, setSelectedDay] = useState("選擇訓練日");
-
-  // 建立一個狀態來儲存 5 個項目的重量與次數
-  // 結構：[{ weight: "", reps: "" }, { weight: "", reps: "" }, ...]
-  // 這樣每一格才是獨立的物件
   const [sets, setSets] = useState(
     [...Array(5)].map(() => ({ weight: "", reps: "" })),
   );
+  const [isSaving, setIsSaving] = useState(false); // 新增: 儲存狀態
 
   const days = Object.keys(workoutData);
 
   // 日期格式化輔助
   const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
+  /**
+   * 改進: 使用 Google Apps Script 儲存資料
+   */
   const handleSave = async () => {
-    await saveWorkout({
-      date: formatDate(selectedDate),
-      day: selectedDay,
-      exercises: workoutData[selectedDay as keyof typeof workoutData],
-      sets,
-    });
-    alert("已儲存！");
+    // 驗證
+    if (selectedDay === "選擇訓練日") {
+      Alert.alert("提醒", "請先選擇訓練日");
+      return;
+    }
+
+    // 檢查是否有輸入任何資料
+    const hasData = sets.some(
+      (set) => set.weight.trim() !== "" || set.reps.trim() !== "",
+    );
+
+    if (!hasData) {
+      Alert.alert("提醒", "請至少輸入一項訓練資料");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      // 準備要發送的資料
+      const workoutPayload = {
+        date: formatDate(selectedDate),
+        day: selectedDay,
+        exercises: workoutData[selectedDay as keyof typeof workoutData],
+        sets: sets.map((set) => ({
+          weight: set.weight || "0",
+          reps: set.reps || "0",
+        })),
+      };
+
+      // 發送到 Google Apps Script
+      const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(workoutPayload),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        Alert.alert("成功", "訓練記錄已儲存到 Google Sheets！");
+        // 清空表單
+        setSets([...Array(5)].map(() => ({ weight: "", reps: "" })));
+        setSelectedDay("選擇訓練日");
+      } else {
+        Alert.alert("錯誤", result.message || "儲存失敗");
+      }
+    } catch (error) {
+      console.error("儲存錯誤:", error);
+      Alert.alert(
+        "錯誤",
+        `無法連線到伺服器: ${error instanceof Error ? error.message : "未知錯誤"}`,
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // 選擇訓練日的 ActionSheet
@@ -50,26 +105,19 @@ export default function Index() {
         userInterfaceStyle: "dark",
       },
       (buttonIndex) => {
-        // if (buttonIndex !== days.length) {
-        //   setSelectedDay(days[buttonIndex]);
-        // }
-        const selectedDayName = days[buttonIndex];
-        handleDaySelect(selectedDayName);
-        // 直接導向 handleDaySelect，
-        // 這樣它會同時執行 setSelectedDay(day) 與 loadWorkout(...)
+        if (buttonIndex !== days.length) {
+          const selectedDayName = days[buttonIndex];
+          handleDaySelect(selectedDayName);
+        }
       },
     );
   };
 
-  const handleDaySelect = async (day: string) => {
+  const handleDaySelect = (day: string) => {
     setSelectedDay(day);
     const count = workoutData[day as keyof typeof workoutData].length;
-    const existing = await loadWorkout(formatDate(selectedDate), day);
-    if (existing) {
-      setSets(existing.sets); // 有紀錄就還原
-    } else {
-      setSets([...Array(count)].map(() => ({ weight: "", reps: "" })));
-    }
+    // 新選擇訓練日時，重置表單
+    setSets([...Array(count)].map(() => ({ weight: "", reps: "" })));
   };
 
   // 更新特定項目的數據
@@ -78,6 +126,13 @@ export default function Index() {
     field: "weight" | "reps",
     value: string,
   ) => {
+    // 驗證: 只允許數字和一個小數點
+    if (field === "weight") {
+      if (!/^\d*\.?\d*$/.test(value)) return;
+    } else if (field === "reps") {
+      if (!/^\d*$/.test(value)) return;
+    }
+
     const newSets = [...sets];
     newSets[index] = { ...newSets[index], [field]: value };
     setSets(newSets);
@@ -85,7 +140,7 @@ export default function Index() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* 日期選擇器放最上方 */}
+      {/* 日期選擇器 */}
       <DatePickerButton
         date={selectedDate}
         onChange={(date) => setSelectedDate(date)}
@@ -103,10 +158,10 @@ export default function Index() {
             <Text style={[styles.cell, styles.header, { flex: 2 }]}>項目</Text>
             <Text style={[styles.cell, styles.header]}>重量</Text>
             <Text style={[styles.cell, styles.header]}>次數</Text>
-            <Text style={[styles.cell, styles.header]}>總量</Text>
+            <Text style={[styles.cell, styles.header]}>訓練量</Text>
           </View>
 
-          {/* 根據 JSON 渲染該日五個項目 */}
+          {/* 訓練項目表格 */}
           {workoutData[selectedDay as keyof typeof workoutData].map(
             (exerciseName, idx) => {
               const w = parseFloat(sets[idx].weight) || 0;
@@ -122,29 +177,50 @@ export default function Index() {
                   <TextInput
                     style={[styles.cell, styles.inputCell]}
                     placeholder="kg"
-                    keyboardType="numeric"
+                    keyboardType="decimal-pad"
                     value={sets[idx].weight}
                     onChangeText={(val) => updateSet(idx, "weight", val)}
+                    editable={!isSaving}
                   />
 
                   <TextInput
                     style={[styles.cell, styles.inputCell]}
                     placeholder="次"
-                    keyboardType="numeric"
+                    keyboardType="number-pad"
                     value={sets[idx].reps}
                     onChangeText={(val) => updateSet(idx, "reps", val)}
+                    editable={!isSaving}
                   />
 
-                  <Text style={[styles.cell, styles.volumeText]}>{volume}</Text>
+                  <Text style={[styles.cell, styles.volumeText]}>
+                    {volume.toFixed(1)}
+                  </Text>
                 </View>
               );
             },
           )}
         </View>
       )}
-      <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-        <Text style={{ color: "#fff", fontWeight: "500" }}>儲存訓練</Text>
+
+      {/* 儲存按鈕 */}
+      <TouchableOpacity
+        onPress={handleSave}
+        style={[styles.saveButton, isSaving && { opacity: 0.6 }]}
+        disabled={isSaving}
+      >
+        {isSaving ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={{ color: "#fff", fontWeight: "500" }}>儲存訓練</Text>
+        )}
       </TouchableOpacity>
+
+      {/* 連線狀態提示 */}
+      <Text style={styles.infoText}>
+        {GOOGLE_APPS_SCRIPT_URL?.includes("/exec")
+          ? "✓ 已連線到 Google Sheets"
+          : "⚠️  Google Apps Script URL 格式不正確"}
+      </Text>
     </ScrollView>
   );
 }

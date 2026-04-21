@@ -125,4 +125,17 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 10,
   },
+
+  infoText: {
+    fontSize: 14, // 適中的字體大小
+    fontWeight: "500", // 稍微加粗，增加可讀性
+    color: "#4B5563", // 中性的深灰色
+    backgroundColor: "#F3F4F6", // 淺灰背景，增加視覺塊感
+    paddingVertical: 8, // 上下內距
+    paddingHorizontal: 16, // 左右內距
+    borderRadius: 8, // 圓角讓視覺更柔和
+    textAlign: "center", // 文字置中
+    marginTop: 10, // 與上方元件的間距
+    overflow: "hidden", // 確保背景顏色不會超出圓角
+  },
 });
