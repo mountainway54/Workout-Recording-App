@@ -12,7 +12,7 @@ import { historyStyles } from "../components/historyStyles";
 
 // ===== Google Apps Script 設定 =====
 const GOOGLE_APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbz6K4mVziukDdad0UqS5p3myt6nh3jg57oaJoDyajuj7-5HNJNcT4SyJwautA6AwM2b/exec";
+  "https://script.google.com/macros/s/AKfycbwqFFZoa9eahTH-8QADn2AZkXtRwTIOWltwej1QrLjO0nb8wmZ8BZj4b3dDjqShOZVA/exec";
 
 // ===== 訓練紀錄介面 =====
 interface WorkoutRecord {

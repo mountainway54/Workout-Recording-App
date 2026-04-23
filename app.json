@@ -7,6 +7,24 @@
     "backgroundColor": "#000000",
     "plugins": [
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a12dbc74-e0d8-4a1e-9ebd-50680f9bbd77"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.mountainway54.workOutRecording",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a12dbc74-e0d8-4a1e-9ebd-50680f9bbd77"
+    },
+    "android": {}
   }
 }
