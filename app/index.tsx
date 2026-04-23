@@ -17,7 +17,7 @@ import workoutData from "./constants/workoutData.json";
 // ===== Google Apps Script 設定 =====
 // 將此 URL 替換為你部署的 Google Apps Script Web App URL
 const GOOGLE_APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbxCtwipfqjVLKdo5eIHS6b3xL-VOUhuBUoGrG4q-jKmEp5xM6FAPJhjy_w7hocxluVg/exec";
+  "https://script.google.com/macros/s/AKfycbz6K4mVziukDdad0UqS5p3myt6nh3jg57oaJoDyajuj7-5HNJNcT4SyJwautA6AwM2b/exec";
 
 export default function Index() {
   const [selectedDate, setSelectedDate] = useState(new Date());

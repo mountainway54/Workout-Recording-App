@@ -1,0 +1,404 @@
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+  Dimensions,
+} from "react-native";
+import { historyStyles } from "../components/historyStyles";
+
+// ===== Google Apps Script 設定 =====
+const GOOGLE_APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbz6K4mVziukDdad0UqS5p3myt6nh3jg57oaJoDyajuj7-5HNJNcT4SyJwautA6AwM2b/exec";
+
+// ===== 訓練紀錄介面 =====
+interface WorkoutRecord {
+  date: string;
+  day: string;
+  exerciseName: string;
+  weight: number;
+  reps: number;
+  volume: number;
+}
+
+interface DayData {
+  date: string;
+  records: WorkoutRecord[];
+  hasWorkout: boolean;
+}
+
+export default function HistoryScreen() {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [calendarDays, setCalendarDays] = useState<(DayData | null)[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedRecords, setSelectedRecords] = useState<WorkoutRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // 生成月曆數據
+  const generateCalendar = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+
+    // 該月的第一天和最後一天
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    // 該月第一天是星期幾 (0 = 周日)
+    const startDay = firstDay.getDay();
+
+    // 生成日期數組
+    const days: (DayData | null)[] = [];
+
+    // 添加前月的日期（灰色）
+    for (let i = 0; i < startDay; i++) {
+      days.push(null);
+    }
+
+    // 添加當月日期
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      days.push({
+        date: dateString,
+        records: [],
+        hasWorkout: false,
+      });
+    }
+
+    setCalendarDays(days);
+  };
+
+  // 從 Google Sheets 獲取該月的訓練紀錄
+  const fetchMonthRecords = async () => {
+    setLoading(true);
+    try {
+      const year = currentMonth.getFullYear();
+      const month = String(currentMonth.getMonth() + 1).padStart(2, "0");
+
+      // 構建該月的日期範圍
+      const startDate = `${year}-${month}-01`;
+      const endDate = `${year}-${month}-${new Date(year, currentMonth.getMonth() + 1, 0).getDate()}`;
+
+      // 發送請求到 Google Apps Script 獲取該月數據
+      const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "getMonthRecords", // 新增的操作類型
+          startDate,
+          endDate,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.records) {
+        // 按日期組織訓練紀錄
+        const recordsByDate = new Map<string, WorkoutRecord[]>();
+
+        result.records.forEach((record: WorkoutRecord) => {
+          if (!recordsByDate.has(record.date)) {
+            recordsByDate.set(record.date, []);
+          }
+          recordsByDate.get(record.date)!.push(record);
+        });
+
+        // 更新月曆數據
+        const updatedDays = calendarDays.map((day) => {
+          if (!day) return null;
+          const records = recordsByDate.get(day.date) || [];
+          return {
+            ...day,
+            records,
+            hasWorkout: records.length > 0,
+          };
+        });
+
+        setCalendarDays(updatedDays);
+      }
+    } catch (error) {
+      console.error("獲取訓練紀錄失敗:", error);
+      Alert.alert("錯誤", "無法獲取訓練紀錄");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 初始化和當月份改變時更新
+  useEffect(() => {
+    generateCalendar(currentMonth);
+  }, [currentMonth]);
+
+  // 獲取月份數據
+  useEffect(() => {
+    fetchMonthRecords();
+  }, [currentMonth]);
+
+  // 處理日期選擇
+  const handleDateSelect = (dayData: DayData) => {
+    setSelectedDate(dayData.date);
+    setSelectedRecords(dayData.records);
+  };
+
+  // 上一月
+  const goToPreviousMonth = () => {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1),
+    );
+    setSelectedDate(null);
+    setSelectedRecords([]);
+  };
+
+  // 下一月
+  const goToNextMonth = () => {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1),
+    );
+    setSelectedDate(null);
+    setSelectedRecords([]);
+  };
+
+  // 回到今月
+  const goToToday = () => {
+    setCurrentMonth(new Date());
+    setSelectedDate(null);
+    setSelectedRecords([]);
+  };
+
+  const monthYearString = currentMonth.toLocaleString("zh-TW", {
+    year: "numeric",
+    month: "long",
+  });
+
+  const weekDays = ["日", "一", "二", "三", "四", "五", "六"];
+
+  const screenWidth = Dimensions.get("window").width;
+  const cellSize = (screenWidth - 40) / 7; // 7 列，左右各 20px padding
+
+  return (
+    <ScrollView style={historyStyles.container}>
+      {/* 標題 */}
+      <View style={historyStyles.titleSection}>
+        <Text style={historyStyles.title}>訓練紀錄歷史</Text>
+      </View>
+
+      {/* 月份導航 */}
+      <View style={historyStyles.navigationContainer}>
+        <TouchableOpacity
+          onPress={goToPreviousMonth}
+          style={historyStyles.navigationButton}
+        >
+          <Text style={historyStyles.navigationButtonText}>← 前月</Text>
+        </TouchableOpacity>
+
+        <Text style={historyStyles.monthYearText}>{monthYearString}</Text>
+
+        <TouchableOpacity
+          onPress={goToNextMonth}
+          style={historyStyles.navigationButton}
+        >
+          <Text style={historyStyles.navigationButtonText}>後月 →</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 今天按鈕 */}
+      {/* <TouchableOpacity onPress={goToToday} style={historyStyles.todayButton}>
+        <Text style={historyStyles.todayButtonText}>回到今天</Text>
+      </TouchableOpacity> */}
+
+      {/* 星期標題 */}
+      <View style={historyStyles.weekdaysContainer}>
+        {weekDays.map((day) => (
+          <Text
+            key={day}
+            style={[historyStyles.weekdayCell, { width: cellSize - 4 }]}
+          >
+            {day}
+          </Text>
+        ))}
+      </View>
+
+      {/* 月曆網格 */}
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color="#4285F4"
+          style={historyStyles.loadingContainer}
+        />
+      ) : (
+        <View>
+          {Array.from({ length: Math.ceil(calendarDays.length / 7) }).map(
+            (_, weekIndex) => (
+              <View key={weekIndex} style={historyStyles.weekRow}>
+                {calendarDays
+                  .slice(weekIndex * 7, (weekIndex + 1) * 7)
+                  .map((dayData, dayIndex) => (
+                    <TouchableOpacity
+                      key={dayIndex}
+                      disabled={!dayData}
+                      onPress={() => dayData && handleDateSelect(dayData)}
+                      style={[
+                        {
+                          width: cellSize - 4,
+                          aspectRatio: 1,
+                          marginHorizontal: 2,
+                        },
+                        historyStyles.dayCell,
+                        dayData
+                          ? dayData.hasWorkout
+                            ? historyStyles.dayCellWithWorkout
+                            : historyStyles.dayCellWithoutWorkout
+                          : {},
+                        dayData?.date === selectedDate
+                          ? historyStyles.dayCellSelected
+                          : {},
+                      ]}
+                    >
+                      {dayData ? (
+                        <>
+                          <Text
+                            style={[
+                              historyStyles.dayNumber,
+                              dayData.hasWorkout &&
+                                historyStyles.dayNumberWithWorkout,
+                            ]}
+                          >
+                            {new Date(dayData.date).getDate()}
+                          </Text>
+                          {dayData.hasWorkout && (
+                            <View style={historyStyles.workoutIndicator} />
+                          )}
+                        </>
+                      ) : null}
+                    </TouchableOpacity>
+                  ))}
+              </View>
+            ),
+          )}
+        </View>
+      )}
+
+      {/* 訓練紀錄詳情 */}
+      {selectedDate && (
+        <View style={historyStyles.recordsSection}>
+          <Text style={historyStyles.recordsTitle}>
+            {selectedDate} 的訓練紀錄
+          </Text>
+
+          {selectedRecords.length > 0 ? (
+            <View>
+              {/* 表頭 */}
+              <View style={historyStyles.tableHeader}>
+                <Text
+                  style={[
+                    historyStyles.tableHeaderCell,
+                    historyStyles.tableHeaderCellFlex2,
+                  ]}
+                >
+                  項目
+                </Text>
+                <Text
+                  style={[
+                    historyStyles.tableHeaderCell,
+                    historyStyles.tableHeaderCellFlex1,
+                  ]}
+                >
+                  重量(kg)
+                </Text>
+                <Text
+                  style={[
+                    historyStyles.tableHeaderCell,
+                    historyStyles.tableHeaderCellFlex1,
+                  ]}
+                >
+                  次數
+                </Text>
+                <Text
+                  style={[
+                    historyStyles.tableHeaderCell,
+                    historyStyles.tableHeaderCellFlex1,
+                  ]}
+                >
+                  訓練量
+                </Text>
+              </View>
+
+              {/* 訓練項目列表 */}
+              <FlatList
+                scrollEnabled={false}
+                data={selectedRecords}
+                keyExtractor={(_, index) => index.toString()}
+                renderItem={({ item, index }) => (
+                  <View
+                    style={[
+                      historyStyles.tableRow,
+                      index % 2 === 0
+                        ? historyStyles.tableRowOdd
+                        : historyStyles.tableRowEven,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        historyStyles.tableCell,
+                        historyStyles.tableHeaderCellFlex2,
+                      ]}
+                    >
+                      {item.exerciseName}
+                    </Text>
+                    <Text
+                      style={[
+                        historyStyles.tableCellSecondary,
+                        historyStyles.tableHeaderCellFlex1,
+                      ]}
+                    >
+                      {item.weight}
+                    </Text>
+                    <Text
+                      style={[
+                        historyStyles.tableCellSecondary,
+                        historyStyles.tableHeaderCellFlex1,
+                      ]}
+                    >
+                      {item.reps}
+                    </Text>
+                    <Text
+                      style={[
+                        historyStyles.tableCellHighlight,
+                        historyStyles.tableHeaderCellFlex1,
+                      ]}
+                    >
+                      {item.volume.toFixed(0)}
+                    </Text>
+                  </View>
+                )}
+              />
+
+              {/* 統計信息 */}
+              <View style={historyStyles.statsContainer}>
+                <Text style={historyStyles.statsText}>
+                  本次訓練: {selectedRecords.length} 個項目 • 總訓練量:{" "}
+                  {selectedRecords
+                    .reduce((sum, r) => sum + r.volume, 0)
+                    .toFixed(0)}{" "}
+                  kg
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={historyStyles.emptyStateContainer}>
+              <Text style={historyStyles.emptyStateText}>
+                該日期沒有訓練紀錄
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+      <View style={historyStyles.bottomSpacer} />
+    </ScrollView>
+  );
+}

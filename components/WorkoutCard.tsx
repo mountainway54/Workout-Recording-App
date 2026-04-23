@@ -138,4 +138,39 @@ export const styles = StyleSheet.create({
     marginTop: 10, // 與上方元件的間距
     overflow: "hidden", // 確保背景顏色不會超出圓角
   },
+  // ===== 新增：計算按鈕 =====
+  addSetButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#4285F4",
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 4,
+  },
+  addSetButtonText: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "700",
+    lineHeight: 24,
+  },
+
+  // ===== 新增：已累積組數標籤列 =====
+  setsTagRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 8,
+    paddingBottom: 6,
+    gap: 4,
+  },
+  setTag: {
+    backgroundColor: "#2a2a3e",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  setTagText: {
+    color: "#aaaaaa",
+    fontSize: 12,
+  },
 });
